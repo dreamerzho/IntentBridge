@@ -50,7 +50,7 @@ class SettingsViewModel @Inject constructor(
                 defaultSpeechRate = rate,
                 defaultPitch = pitch,
                 selectedVoiceId = voiceId,
-                aliyunApiKey = AliyunTTSService.API_KEY,
+                aliyunApiKey = AliyunTTSService.RUNTIME_API_KEY,
                 selectedAliyunVoice = AliyunTTSService.DEFAULT_VOICE,
                 isAliyunConfigured = aliyunTTSService.isConfigured()
             )

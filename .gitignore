@@ -74,3 +74,14 @@ lint/tmp/
 # OS specific files
 .DS_Store
 Thumbs.db
+
+# Test Python scripts
+*.py
+!gradle-wrapper.properties
+voice_mono*
+test_*
+clone_voice.py
+get_token.py
+list_voices.py
+upload_*
+
