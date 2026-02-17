@@ -44,10 +44,13 @@ class TTSService @Inject constructor(
     private val _availableVoices = MutableStateFlow<List<VoiceInfo>>(emptyList())
     val availableVoices: StateFlow<List<VoiceInfo>> = _availableVoices.asStateFlow()
     
-    // Default settings
-    private var defaultSpeechRate = 1.0f
-    private var defaultPitch = 1.0f
+    // Default settings - Use child-friendly (Peppa Pig) voice by default
+    private var defaultSpeechRate = 1.1f  // Slightly faster for children
+    private var defaultPitch = 1.3f        // Higher pitch for child-like voice
     private var defaultVoiceId: String? = null
+    
+    // Peppa Pig mode - child-like voice settings
+    private var peppaPigMode = true  // Default to child-like voice for ASD children
     
     /**
      * Initialize TTS engine
@@ -190,6 +193,26 @@ class TTSService @Inject constructor(
     fun getDefaultSettings(): Triple<Float, Float, String?> {
         return Triple(defaultSpeechRate, defaultPitch, defaultVoiceId)
     }
+    
+    /**
+     * Enable/disable Peppa Pig mode (child-like voice)
+     * When enabled, uses higher pitch and slightly faster rate for child-friendly voice
+     */
+    fun setPeppaPigMode(enabled: Boolean) {
+        peppaPigMode = enabled
+        if (enabled) {
+            // Apply child-like voice settings
+            defaultPitch = 1.3f
+            defaultSpeechRate = 1.1f
+            tts?.setPitch(1.3f)
+            tts?.setSpeechRate(1.1f)
+        }
+    }
+    
+    /**
+     * Check if Peppa Pig mode is enabled
+     */
+    fun isPeppaPigMode(): Boolean = peppaPigMode
     
     /**
      * Stop any ongoing speech

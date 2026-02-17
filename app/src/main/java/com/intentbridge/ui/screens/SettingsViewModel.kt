@@ -2,6 +2,7 @@ package com.intentbridge.ui.screens
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.intentbridge.service.AliyunTTSService
 import com.intentbridge.service.TTSService
 import com.intentbridge.service.VoiceInfo
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -17,7 +18,12 @@ data class SettingsScreenState(
     val defaultPitch: Float = 1.0f,
     val selectedVoiceId: String? = null,
     val availableVoices: List<VoiceInfo> = emptyList(),
-    val isTesting: Boolean = false
+    val isTesting: Boolean = false,
+    // Aliyun Bailian TTS settings
+    val aliyunApiKey: String = "ZxR6hg9SnATTHZQY",
+    val selectedAliyunVoice: String = "xiaoxuan",
+    val useAliyunTTS: Boolean = true,
+    val isAliyunConfigured: Boolean = true
 )
 
 /**
@@ -25,7 +31,8 @@ data class SettingsScreenState(
  */
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
-    private val ttsService: TTSService
+    private val ttsService: TTSService,
+    private val aliyunTTSService: AliyunTTSService
 ) : ViewModel() {
     
     private val _state = MutableStateFlow(SettingsScreenState())
@@ -42,7 +49,10 @@ class SettingsViewModel @Inject constructor(
             it.copy(
                 defaultSpeechRate = rate,
                 defaultPitch = pitch,
-                selectedVoiceId = voiceId
+                selectedVoiceId = voiceId,
+                aliyunApiKey = AliyunTTSService.API_KEY,
+                selectedAliyunVoice = AliyunTTSService.DEFAULT_VOICE,
+                isAliyunConfigured = aliyunTTSService.isConfigured()
             )
         }
     }
@@ -79,5 +89,29 @@ class SettingsViewModel @Inject constructor(
             pitch = _state.value.defaultPitch,
             voiceId = _state.value.selectedVoiceId
         )
+    }
+    
+    fun updateAliyunConfig(apiKey: String, voice: String) {
+        aliyunTTSService.updateCredentials(apiKey, voice)
+        _state.update {
+            it.copy(
+                aliyunApiKey = apiKey,
+                selectedAliyunVoice = voice,
+                isAliyunConfigured = apiKey.isNotBlank()
+            )
+        }
+    }
+    
+    fun setUseAliyunTTS(use: Boolean) {
+        _state.update { it.copy(useAliyunTTS = use) }
+    }
+    
+    fun testAliyunVoice() {
+        viewModelScope.launch {
+            _state.update { it.copy(isTesting = true) }
+            aliyunTTSService.speak("你好，我是小猪佩奇！") {
+                _state.update { it.copy(isTesting = false) }
+            }
+        }
     }
 }

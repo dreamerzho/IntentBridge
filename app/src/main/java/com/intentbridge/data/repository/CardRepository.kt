@@ -78,4 +78,21 @@ class CardRepository @Inject constructor(
      */
     suspend fun getCardCountByCategory(category: CardCategory): Int = 
         cardDao.getCardCountByCategory(category)
+    
+    // ==================== Hierarchy Support ====================
+    
+    /**
+     * Get level-1 verb cards
+     */
+    fun getVerbCards(): Flow<List<Card>> = cardDao.getVerbCards()
+    
+    /**
+     * Get level-2 child cards for a parent
+     */
+    fun getChildCards(parentId: Long): Flow<List<Card>> = cardDao.getChildCards(parentId)
+    
+    /**
+     * Get level-2 child cards synchronously
+     */
+    suspend fun getChildCardsSync(parentId: Long): List<Card> = cardDao.getChildCardsSync(parentId)
 }

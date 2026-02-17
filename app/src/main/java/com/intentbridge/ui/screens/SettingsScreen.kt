@@ -17,7 +17,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.intentbridge.ui.theme.*
 
 /**
- * Settings screen for global voice and app settings
+ * Settings screen for voice settings
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -26,6 +26,7 @@ fun SettingsScreen(
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
+    var showAliyunConfigDialog by remember { mutableStateOf(false) }
     
     Scaffold(
         topBar = {
@@ -60,10 +61,10 @@ fun SettingsScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Global voice settings
+            // Aliyun TTS Settings
             item {
                 Text(
-                    text = "全局语音设置",
+                    text = "阿里云语音合成",
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
                     color = StandardBlue
@@ -77,163 +78,119 @@ fun SettingsScreen(
                 ) {
                     Column(
                         modifier = Modifier.padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
-                        // Default speech rate
-                        Column {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    text = "默认语速",
-                                    fontSize = 16.sp,
-                                    fontWeight = FontWeight.Medium
-                                )
-                                Text(
-                                    text = "${String.format("%.1f", state.defaultSpeechRate)}x",
-                                    fontSize = 16.sp,
-                                    color = StandardBlue
-                                )
-                            }
-                            Slider(
-                                value = state.defaultSpeechRate,
-                                onValueChange = { viewModel.setDefaultSpeechRate(it) },
-                                valueRange = 0.5f..2.0f,
-                                steps = 5,
-                                modifier = Modifier.fillMaxWidth()
-                            )
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Text("慢", fontSize = 12.sp, color = TextSecondary)
-                                Text("正常", fontSize = 12.sp, color = TextSecondary)
-                                Text("快", fontSize = 12.sp, color = TextSecondary)
-                            }
-                        }
-                        
-                        Divider()
-                        
-                        // Default pitch
-                        Column {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    text = "默认音调",
-                                    fontSize = 16.sp,
-                                    fontWeight = FontWeight.Medium
-                                )
-                                Text(
-                                    text = "${String.format("%.1f", state.defaultPitch)}x",
-                                    fontSize = 16.sp,
-                                    color = StandardBlue
-                                )
-                            }
-                            Slider(
-                                value = state.defaultPitch,
-                                onValueChange = { viewModel.setDefaultPitch(it) },
-                                valueRange = 0.5f..2.0f,
-                                steps = 5,
-                                modifier = Modifier.fillMaxWidth()
-                            )
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Text("低", fontSize = 12.sp, color = TextSecondary)
-                                Text("正常", fontSize = 12.sp, color = TextSecondary)
-                                Text("高", fontSize = 12.sp, color = TextSecondary)
-                            }
-                        }
-                        
-                        Divider()
-                        
-                        // Test voice button
-                        Button(
-                            onClick = { viewModel.testVoice() },
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = ButtonDefaults.buttonColors(containerColor = StandardPurple)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.VolumeUp,
-                                contentDescription = null
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text("测试语音")
-                        }
-                    }
-                }
-            }
-            
-            // Available voices section
-            item {
-                Text(
-                    text = "可用语音",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = StandardBlue
-                )
-            }
-            
-            item {
-                if (state.availableVoices.isEmpty()) {
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(containerColor = SurfaceLight)
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         Text(
-                            text = "正在加载可用语音...",
-                            modifier = Modifier.padding(16.dp),
+                            text = "使用阿里云百炼平台语音合成，支持多种音色",
+                            fontSize = 12.sp,
                             color = TextSecondary
                         )
-                    }
-                } else {
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(containerColor = SurfaceLight)
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(8.dp)
+                        
+                        // API Key display with edit button
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            state.availableVoices.forEach { voice ->
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(12.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    RadioButton(
-                                        selected = state.selectedVoiceId == voice.id,
-                                        onClick = { viewModel.setDefaultVoice(voice.id) }
+                            OutlinedTextField(
+                                value = state.aliyunApiKey,
+                                onValueChange = { },
+                                label = { Text("API Key") },
+                                modifier = Modifier.weight(1f),
+                                singleLine = true,
+                                readOnly = true
+                            )
+                            IconButton(onClick = { showAliyunConfigDialog = true }) {
+                                Icon(
+                                    imageVector = Icons.Default.Edit,
+                                    contentDescription = "修改API Key",
+                                    tint = StandardPurple
+                                )
+                            }
+                        }
+                        
+                        // Voice selection dropdown
+                        var voiceExpanded by remember { mutableStateOf(false) }
+                        val voiceNames = mapOf(
+                            "xiaoxuan" to "小轩 (青年女声)",
+                            "xiaoyun" to "小云 (青年女声)",
+                            "xiaogang" to "小刚 (青年男声)",
+                            "ruoxi" to "若熙 (少女声)",
+                            "aibao" to "爱宝 (童年男声)",
+                            "xiaomei" to "小美 (成熟女声)",
+                            "yujie" to "雨洁 (温柔女声)"
+                        )
+                        
+                        ExposedDropdownMenuBox(
+                            expanded = voiceExpanded,
+                            onExpandedChange = { voiceExpanded = it }
+                        ) {
+                            OutlinedTextField(
+                                value = voiceNames[state.selectedAliyunVoice] ?: state.selectedAliyunVoice,
+                                onValueChange = {},
+                                readOnly = true,
+                                label = { Text("选择音色") },
+                                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = voiceExpanded) },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .menuAnchor()
+                            )
+                            ExposedDropdownMenu(
+                                expanded = voiceExpanded,
+                                onDismissRequest = { voiceExpanded = false }
+                            ) {
+                                voiceNames.forEach { (key, name) ->
+                                    DropdownMenuItem(
+                                        text = { Text(name) },
+                                        onClick = {
+                                            viewModel.updateAliyunConfig(state.aliyunApiKey, key)
+                                            voiceExpanded = false
+                                        }
                                     )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Column {
-                                        Text(
-                                            text = voice.name,
-                                            fontSize = 16.sp,
-                                            fontWeight = FontWeight.Medium
-                                        )
-                                        Text(
-                                            text = voice.locale.displayName,
-                                            fontSize = 12.sp,
-                                            color = TextSecondary
-                                        )
-                                    }
-                                    if (voice.isQualityHigh) {
-                                        Spacer(modifier = Modifier.weight(1f))
-                                        Text(
-                                            text = "高品质",
-                                            fontSize = 12.sp,
-                                            color = StandardGreen
-                                        )
-                                    }
                                 }
                             }
+                        }
+                        
+                        // Status indicator
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = if (state.isAliyunConfigured) Icons.Default.CheckCircle else Icons.Default.Warning,
+                                contentDescription = null,
+                                tint = if (state.isAliyunConfigured) StandardGreen else StandardOrange,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = if (state.isAliyunConfigured) "已配置 (使用阿里云语音)" else "未配置",
+                                fontSize = 14.sp,
+                                color = if (state.isAliyunConfigured) StandardGreen else StandardOrange
+                            )
+                        }
+                        
+                        Divider()
+                        
+                        // Test button
+                        Button(
+                            onClick = { viewModel.testAliyunVoice() },
+                            modifier = Modifier.fillMaxWidth(),
+                            enabled = state.isAliyunConfigured && !state.isTesting,
+                            colors = ButtonDefaults.buttonColors(containerColor = StandardPurple)
+                        ) {
+                            if (state.isTesting) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(20.dp),
+                                    color = Color.White,
+                                    strokeWidth = 2.dp
+                                )
+                            } else {
+                                Icon(
+                                    imageVector = Icons.Default.VolumeUp,
+                                    contentDescription = null
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("测试语音")
                         }
                     }
                 }
@@ -278,5 +235,49 @@ fun SettingsScreen(
                 }
             }
         }
+    }
+    
+    // Aliyun Config Dialog
+    if (showAliyunConfigDialog) {
+        var apiKeyInput by remember { mutableStateOf(state.aliyunApiKey) }
+        
+        AlertDialog(
+            onDismissRequest = { showAliyunConfigDialog = false },
+            title = { Text("配置阿里云语音", fontWeight = FontWeight.Bold) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(
+                        text = "在阿里云百炼控制台获取API Key",
+                        fontSize = 12.sp,
+                        color = TextSecondary
+                    )
+                    
+                    OutlinedTextField(
+                        value = apiKeyInput,
+                        onValueChange = { apiKeyInput = it },
+                        label = { Text("API Key") },
+                        placeholder = { Text("请输入百炼API Key") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        viewModel.updateAliyunConfig(apiKeyInput, state.selectedAliyunVoice)
+                        showAliyunConfigDialog = false
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = StandardPurple)
+                ) {
+                    Text("保存")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showAliyunConfigDialog = false }) {
+                    Text("取消")
+                }
+            }
+        )
     }
 }

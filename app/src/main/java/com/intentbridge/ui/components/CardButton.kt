@@ -1,8 +1,9 @@
 package com.intentbridge.ui.components
 
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
@@ -10,7 +11,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.ripple.rememberRipple
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -33,14 +33,16 @@ import com.intentbridge.data.model.CardCategory
 import com.intentbridge.ui.theme.*
 
 /**
- * Communication card button for the grid
- * Single tap triggers instant speech
+ * Communication card button with long-press support
+ * Long press (0.2s) to trigger, prevents accidental touches
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun CardButton(
     card: Card,
     cardColor: Color,
     onClick: () -> Unit,
+    onLongClick: () -> Unit = onClick,
     modifier: Modifier = Modifier
 ) {
     val interactionSource = remember { MutableInteractionSource() }
@@ -66,16 +68,21 @@ fun CardButton(
             cardColor,
             cardColor.copy(alpha = 0.8f)
         )
+        CardCategory.VERB -> listOf(
+            StandardPurple,
+            StandardPurple.copy(alpha = 0.8f)
+        )
     }
     
     Card(
         modifier = modifier
             .fillMaxSize()
             .scale(scale)
-            .clickable(
+            .combinedClickable(
                 interactionSource = interactionSource,
                 indication = rememberRipple(bounded = true, color = Color.White.copy(alpha = 0.3f)),
-                onClick = onClick
+                onClick = onClick,
+                onLongClick = onLongClick
             ),
         shape = RoundedCornerShape(16.dp),
         elevation = CardDefaults.cardElevation(

@@ -1,5 +1,6 @@
 package com.intentbridge.ui.screens
 
+import android.graphics.Bitmap
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -20,6 +21,7 @@ import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.RecordVoiceOver
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -38,6 +40,8 @@ import coil.request.ImageRequest
 import com.intentbridge.data.model.Card
 import com.intentbridge.data.model.CardCategory
 import com.intentbridge.ui.theme.*
+import java.io.File
+import java.io.FileOutputStream
 
 /**
  * Font size options for labels
@@ -52,6 +56,9 @@ val fontSizeOptions = listOf(20, 24, 28, 32, 36)
 fun ConfigScreen(
     onNavigateBack: () -> Unit,
     onNavigateToSettings: () -> Unit,
+    editCardId: Long? = null,  // If provided, edit this specific card
+    isLevel2Edit: Boolean = false,  // If true, edit level 2 cards
+    parentCardIdForEdit: Long? = null,  // Parent card id for level 2 edit
     viewModel: ConfigViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
@@ -59,12 +66,45 @@ fun ConfigScreen(
     var editingCard by remember { mutableStateOf<Card?>(null) }
     var showDeleteConfirm by remember { mutableStateOf<Card?>(null) }
     
+    // If editCardId is provided, try to find and edit that card
+    LaunchedEffect(editCardId) {
+        if (editCardId != null && editCardId > 0) {
+            val allCards = state.urgentCards + state.standardCards + state.verbCards
+            val cardToEdit = allCards.find { it.id == editCardId }
+            if (cardToEdit != null) {
+                editingCard = cardToEdit
+            }
+        }
+    }
+    
+    // Filter cards based on context
+    val displayedCards = when {
+        editCardId != null && editCardId > 0 -> {
+            // Show only the specific card being edited
+            val allCards = state.urgentCards + state.standardCards + state.verbCards
+            allCards.filter { it.id == editCardId }
+        }
+        isLevel2Edit && parentCardIdForEdit != null -> {
+            // Show level 2 cards under the parent
+            state.standardCards.filter { it.parentId == parentCardIdForEdit }
+        }
+        isLevel2Edit -> {
+            // Show all level 2 cards (cards with parentId)
+            state.standardCards.filter { it.parentId != null }
+        }
+        else -> null // Show all cards
+    }
+    
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {
                     Text(
-                        text = "卡片配置",
+                        text = when {
+                            editCardId != null && editCardId > 0 -> "编辑卡片"
+                            isLevel2Edit -> "编辑二级卡片"
+                            else -> "卡片配置"
+                        },
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -79,13 +119,15 @@ fun ConfigScreen(
                     }
                 },
                 actions = {
-                    // Settings button for voice settings
-                    IconButton(onClick = onNavigateToSettings) {
-                        Icon(
-                            imageVector = Icons.Default.Settings,
-                            contentDescription = "语音设置",
-                            tint = Color.White
-                        )
+                    if (editCardId == null || editCardId == 0L) {
+                        // Settings button for voice settings (only in full config mode)
+                        IconButton(onClick = onNavigateToSettings) {
+                            Icon(
+                                imageVector = Icons.Default.Settings,
+                                contentDescription = "语音设置",
+                                tint = Color.White
+                            )
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -107,6 +149,9 @@ fun ConfigScreen(
             }
         }
     ) { paddingValues ->
+        // Show FAB only in full config mode
+        val showFab = editCardId == null || editCardId == 0L
+        
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
@@ -114,41 +159,73 @@ fun ConfigScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // Urgent cards section
-            item {
-                Text(
-                    text = "紧急区",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = UrgentRed
-                )
-            }
-            
-            items(state.urgentCards) { card ->
-                CardItem(
-                    card = card,
-                    onEdit = { editingCard = card },
-                    onDelete = { showDeleteConfirm = card }
-                )
-            }
-            
-            // Standard cards section
-            item {
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "需求区",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = StandardBlue
-                )
-            }
-            
-            items(state.standardCards) { card ->
-                CardItem(
-                    card = card,
-                    onEdit = { editingCard = card },
-                    onDelete = { showDeleteConfirm = card }
-                )
+            // Single card edit mode - show just that card
+            if (editCardId != null && editCardId > 0 && displayedCards != null) {
+                items(displayedCards) { card ->
+                    CardItem(
+                        card = card,
+                        onEdit = { editingCard = card },
+                        onDelete = { showDeleteConfirm = card }
+                    )
+                }
+            } else {
+                // Full config mode - show all cards by category
+                
+                // Verb cards section (Level 1 - 动词)
+                item {
+                    Text(
+                        text = "一级卡片 (动词)",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = StandardPurple
+                    )
+                }
+                
+                items(state.verbCards) { card ->
+                    CardItem(
+                        card = card,
+                        onEdit = { editingCard = card },
+                        onDelete = { showDeleteConfirm = card }
+                    )
+                }
+                
+                // Urgent cards section
+                item {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "紧急区",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = UrgentRed
+                    )
+                }
+                
+                items(state.urgentCards) { card ->
+                    CardItem(
+                        card = card,
+                        onEdit = { editingCard = card },
+                        onDelete = { showDeleteConfirm = card }
+                    )
+                }
+                
+                // Standard cards section
+                item {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "需求区",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = StandardBlue
+                    )
+                }
+                
+                items(state.standardCards) { card ->
+                    CardItem(
+                        card = card,
+                        onEdit = { editingCard = card },
+                        onDelete = { showDeleteConfirm = card }
+                    )
+                }
             }
         }
     }
@@ -157,11 +234,16 @@ fun ConfigScreen(
     if (showAddDialog) {
         CardEditDialog(
             card = null,
+            verbCards = state.verbCards,
             onDismiss = { showAddDialog = false },
-            onSave = { label, speechText, imagePath, category, fontSize, labelColor, speechRate, speechPitch ->
-                viewModel.addCard(label, speechText, imagePath, category, fontSize, labelColor, speechRate, speechPitch)
+            onSave = { label, speechText, imagePath, category, fontSize, labelColor, speechRate, speechPitch, parentId ->
+                viewModel.addCard(label, speechText, imagePath, category, fontSize, labelColor, speechRate, speechPitch, parentId)
                 showAddDialog = false
-            }
+            },
+            onPreviewVoice = { text, rate, pitch ->
+                viewModel.previewVoice(text, rate, pitch)
+            },
+            isSpeaking = state.isSpeaking
         )
     }
     
@@ -169,8 +251,9 @@ fun ConfigScreen(
     editingCard?.let { card ->
         CardEditDialog(
             card = card,
+            verbCards = state.verbCards,
             onDismiss = { editingCard = null },
-            onSave = { label, speechText, imagePath, category, fontSize, labelColor, speechRate, speechPitch ->
+            onSave = { label, speechText, imagePath, category, fontSize, labelColor, speechRate, speechPitch, parentId ->
                 viewModel.updateCard(card.copy(
                     label = label,
                     speechText = speechText,
@@ -179,10 +262,15 @@ fun ConfigScreen(
                     labelFontSize = fontSize,
                     labelColor = labelColor,
                     speechRate = speechRate,
-                    speechPitch = speechPitch
+                    speechPitch = speechPitch,
+                    parentId = parentId
                 ))
                 editingCard = null
-            }
+            },
+            onPreviewVoice = { text, rate, pitch ->
+                viewModel.previewVoice(text, rate, pitch)
+            },
+            isSpeaking = state.isSpeaking
         )
     }
     
@@ -272,6 +360,13 @@ private fun CardItem(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
+                    // Level indicator (一级/二级)
+                    Text(
+                        text = if (card.parentId != null) "二级" else "一级",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = if (card.parentId != null) StandardOrange else StandardPurple
+                    )
                     Text(
                         text = if (card.category == CardCategory.URGENT) "紧急区" else "需求区",
                         fontSize = 12.sp,
@@ -309,6 +404,7 @@ private fun CardItem(
 @Composable
 private fun CardEditDialog(
     card: Card?,
+    verbCards: List<Card>,  // Level 1 cards for parent selection
     onDismiss: () -> Unit,
     onSave: (
         label: String,
@@ -318,9 +414,14 @@ private fun CardEditDialog(
         fontSize: Int,
         labelColor: String,
         speechRate: Float,
-        speechPitch: Float
-    ) -> Unit
+        speechPitch: Float,
+        parentId: Long?  // For level 2 cards
+    ) -> Unit,
+    onPreviewVoice: ((String, Float, Float) -> Unit)? = null,  // Voice preview callback
+    isSpeaking: Boolean = false
 ) {
+    val context = LocalContext.current
+    
     var label by remember { mutableStateOf(card?.label ?: "") }
     var speechText by remember { mutableStateOf(card?.speechText ?: "") }
     var imagePath by remember { mutableStateOf(card?.imagePath ?: "") }
@@ -329,8 +430,10 @@ private fun CardEditDialog(
     var labelColor by remember { mutableStateOf(card?.labelColor ?: "#FFFFFF") }
     var speechRate by remember { mutableFloatStateOf(card?.speechRate ?: 1.0f) }
     var speechPitch by remember { mutableFloatStateOf(card?.speechPitch ?: 1.0f) }
+    var parentId by remember { mutableStateOf(card?.parentId) }  // For level 2 cards
     
     var categoryExpanded by remember { mutableStateOf(false) }
+    var parentExpanded by remember { mutableStateOf(false) }
     var showVoiceSettings by remember { mutableStateOf(false) }
     
     val imagePicker = rememberLauncherForActivityResult(
@@ -341,8 +444,19 @@ private fun CardEditDialog(
     
     val cameraLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicturePreview()
-    ) { bitmap ->
-        // In production, save bitmap to file and use path
+    ) { bitmap: android.graphics.Bitmap? ->
+        bitmap?.let { bmp ->
+            // Save bitmap to cache file
+            try {
+                val file = File(context.cacheDir, "camera_${System.currentTimeMillis()}.jpg")
+                FileOutputStream(file).use { out ->
+                    bmp.compress(android.graphics.Bitmap.CompressFormat.JPEG, 90, out)
+                }
+                imagePath = file.absolutePath
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
     }
     
     AlertDialog(
@@ -439,16 +553,46 @@ private fun CardEditDialog(
                     )
                 }
                 
-                // Speech text input
+                // Speech text input with preview button
                 item {
-                    OutlinedTextField(
-                        value = speechText,
-                        onValueChange = { speechText = it },
-                        label = { Text("播报文字") },
-                        placeholder = { Text("例如: 妈妈，我想尿尿！") },
+                    Row(
                         modifier = Modifier.fillMaxWidth(),
-                        maxLines = 3
-                    )
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        OutlinedTextField(
+                            value = speechText,
+                            onValueChange = { speechText = it },
+                            label = { Text("播报文字") },
+                            placeholder = { Text("例如: 妈妈，我想尿尿！") },
+                            modifier = Modifier.weight(1f),
+                            maxLines = 3
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        // Voice preview button
+                        if (onPreviewVoice != null) {
+                            IconButton(
+                                onClick = { 
+                                    if (speechText.isNotBlank()) {
+                                        onPreviewVoice(speechText, speechRate, speechPitch)
+                                    }
+                                },
+                                enabled = speechText.isNotBlank() && !isSpeaking
+                            ) {
+                                if (isSpeaking) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(24.dp),
+                                        strokeWidth = 2.dp
+                                    )
+                                } else {
+                                    Icon(
+                                        imageVector = Icons.Default.VolumeUp,
+                                        contentDescription = "预览语音",
+                                        tint = StandardPurple
+                                    )
+                                }
+                            }
+                        }
+                    }
                 }
                 
                 // Category dropdown
@@ -488,6 +632,52 @@ private fun CardEditDialog(
                                     categoryExpanded = false
                                 }
                             )
+                        }
+                    }
+                }
+                
+                // Parent card selection (for level 2 cards)
+                item {
+                    val selectedParent = verbCards.find { it.id == parentId }
+                    ExposedDropdownMenuBox(
+                        expanded = parentExpanded,
+                        onExpandedChange = { parentExpanded = it }
+                    ) {
+                        OutlinedTextField(
+                            value = selectedParent?.label ?: "无 (一级卡片)",
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("父级卡片") },
+                            trailingIcon = {
+                                ExposedDropdownMenuDefaults.TrailingIcon(expanded = parentExpanded)
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .menuAnchor()
+                        )
+                        
+                        ExposedDropdownMenu(
+                            expanded = parentExpanded,
+                            onDismissRequest = { parentExpanded = false }
+                        ) {
+                            // Option for level 1 card (no parent)
+                            DropdownMenuItem(
+                                text = { Text("无 (一级卡片)") },
+                                onClick = {
+                                    parentId = null
+                                    parentExpanded = false
+                                }
+                            )
+                            // List all verb cards as potential parents
+                            verbCards.forEach { verbCard ->
+                                DropdownMenuItem(
+                                    text = { Text(verbCard.label) },
+                                    onClick = {
+                                        parentId = verbCard.id
+                                        parentExpanded = false
+                                    }
+                                )
+                            }
                         }
                     }
                 }
@@ -619,7 +809,7 @@ private fun CardEditDialog(
         confirmButton = {
             Button(
                 onClick = { 
-                    onSave(label, speechText, imagePath, category, fontSize, labelColor, speechRate, speechPitch) 
+                    onSave(label, speechText, imagePath, category, fontSize, labelColor, speechRate, speechPitch, parentId) 
                 },
                 enabled = label.isNotBlank() && speechText.isNotBlank(),
                 colors = ButtonDefaults.buttonColors(containerColor = StandardGreen)

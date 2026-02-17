@@ -23,6 +23,17 @@ interface CardDao {
     @Query("SELECT * FROM cards WHERE category = 'STANDARD' ORDER BY displayOrder ASC")
     fun getStandardCards(): Flow<List<Card>>
     
+    // Hierarchy queries - Level 1 (Verb) cards
+    @Query("SELECT * FROM cards WHERE category = 'VERB' AND parentId IS NULL ORDER BY displayOrder ASC")
+    fun getVerbCards(): Flow<List<Card>>
+    
+    // Hierarchy queries - Level 2 (Detail) cards for a specific parent
+    @Query("SELECT * FROM cards WHERE parentId = :parentId ORDER BY displayOrder ASC")
+    fun getChildCards(parentId: Long): Flow<List<Card>>
+    
+    @Query("SELECT * FROM cards WHERE parentId = :parentId ORDER BY displayOrder ASC")
+    suspend fun getChildCardsSync(parentId: Long): List<Card>
+    
     @Query("SELECT * FROM cards WHERE id = :id")
     suspend fun getCardById(id: Long): Card?
     

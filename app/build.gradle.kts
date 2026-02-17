@@ -85,7 +85,13 @@ dependencies {
 
     // Coil Image Loading
     implementation("io.coil-kt:coil-compose:2.5.0")
-
+    
+    // OkHttp for Aliyun TTS API
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    
+    // JSON parsing
+    implementation("org.json:json:20231013")
+    
     // Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
 
