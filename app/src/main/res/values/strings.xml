@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">意图桥</string>
+    <string name="urgent_zone">紧急区</string>
+    <string name="standard_zone">需求区</string>
+    <string name="config_title">卡片配置</string>
+    <string name="save">保存</string>
+    <string name="cancel">取消</string>
+    <string name="edit_card">编辑卡片</string>
+    <string name="add_card">添加卡片</string>
+    <string name="label_hint">标签文字</string>
+    <string name="speech_text_hint">播报文字</string>
+    <string name="select_image">选择图片</string>
+    <string name="delete_card">删除卡片</string>
+    <string name="confirm_delete">确认删除此卡片？</string>
+    <string name="yes">是</string>
+    <string name="no">否</string>
+    <string name="settings">设置</string>
+    <string name="parent_mode">家长模式</string>
+    <string name="child_mode">儿童模式</string>
+    <string name="ai_prediction">AI预测</string>
+    <string name="coach_suggestion">教练建议</string>
+</resources>

@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="purple_200">#FFBB86FC</color>
+    <color name="purple_500">#FF6200EE</color>
+    <color name="purple_700">#FF3700B3</color>
+    <color name="teal_200">#FF03DAC5</color>
+    <color name="teal_700">#FF018786</color>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+    
+    <!-- Urgent Zone Colors -->
+    <color name="urgent_red">#FFE53935</color>
+    <color name="urgent_red_dark">#FFC62828</color>
+    
+    <!-- Standard Zone Colors -->
+    <color name="standard_blue">#FF1E88E5</color>
+    <color name="standard_green">#FF43A047</color>
+    <color name="standard_orange">#FFFB8C00</color>
+    <color name="standard_purple">#FF8E24AA</color>
+    <color name="standard_teal">#FF00897B</color>
+    <color name="standard_pink">#FFD81B60</color>
+    
+    <!-- Background -->
+    <color name="background_light">#FFF5F5F5</color>
+    <color name="surface_light">#FFFFFFFF</color>
+</resources>
