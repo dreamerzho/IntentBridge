@@ -36,6 +36,7 @@ data class Card(
     val label: String,                    // Display label (e.g., "尿尿", "吃", "面包")
     val imagePath: String = "",          // Local path to card image
     val speechText: String = "",         // Text to be spoken by TTS
+    val audioPath: String = "",          // Local path to pre-generated audio file (mp3)
     val category: CardCategory = CardCategory.STANDARD, // Card category
     val parentId: Long? = null,         // Parent card ID (null for top-level cards)
     val displayOrder: Int = 0,           // Order in the grid

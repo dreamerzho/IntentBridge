@@ -6,6 +6,7 @@ import com.intentbridge.data.model.Card
 import com.intentbridge.data.model.CardCategory
 import com.intentbridge.data.repository.CardRepository
 import com.intentbridge.service.AliyunTTSService
+import com.intentbridge.service.AudioCacheManager
 import com.intentbridge.service.TTSService
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
@@ -37,7 +38,8 @@ data class MainScreenState(
 class MainViewModel @Inject constructor(
     private val cardRepository: CardRepository,
     private val ttsService: TTSService,
-    private val aliyunTTSService: AliyunTTSService
+    private val aliyunTTSService: AliyunTTSService,
+    private val audioCacheManager: AudioCacheManager
 ) : ViewModel() {
     
     private val _state = MutableStateFlow(MainScreenState())
@@ -158,19 +160,22 @@ class MainViewModel @Inject constructor(
     }
     
     /**
-     * Speak using Aliyun TTS service
+     * Speak using Aliyun TTS service - try cache first, then streaming
      */
     private suspend fun speakWithAliyun(card: Card) {
         if (aliyunTTSService.isConfigured()) {
-            aliyunTTSService.speak(text = card.speechText) {}
+            // Try to play from local cache first for instant response
+            audioCacheManager.playCardAudio(card) {}
         }
     }
     
     /**
-     * Speak text using Aliyun TTS service
+     * Speak text using Aliyun TTS service - try cache first, then streaming
      */
     private suspend fun speakWithAliyunText(text: String) {
         if (aliyunTTSService.isConfigured()) {
+            // Try to play from cache by searching for matching card
+            // For now, just use streaming TTS for dynamic text
             aliyunTTSService.speak(text = text) {}
         }
     }

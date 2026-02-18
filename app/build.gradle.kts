@@ -88,6 +88,10 @@ dependencies {
     
     // OkHttp for Aliyun TTS API
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    implementation("com.squareup.okio:okio:1.17.6")
+    
+    // Aliyun NUI SDK (local AAR)
+    implementation(files("libs/nuisdk-release.aar"))
     
     // JSON parsing
     implementation("org.json:json:20231013")

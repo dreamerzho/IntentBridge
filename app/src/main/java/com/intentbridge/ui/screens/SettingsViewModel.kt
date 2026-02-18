@@ -19,9 +19,9 @@ data class SettingsScreenState(
     val selectedVoiceId: String? = null,
     val availableVoices: List<VoiceInfo> = emptyList(),
     val isTesting: Boolean = false,
-    // Aliyun Bailian TTS settings
-    val aliyunApiKey: String = "ZxR6hg9SnATTHZQY",
-    val selectedAliyunVoice: String = "xiaoxuan",
+    // Aliyun Bailian TTS settings - 使用语音复刻
+    val aliyunApiKey: String = "",
+    val selectedAliyunVoice: String = "cosyvoice-v3-plus-bailian-2f6cbcf58fa54420b4a95b2bf6510cae",
     val useAliyunTTS: Boolean = true,
     val isAliyunConfigured: Boolean = true
 )

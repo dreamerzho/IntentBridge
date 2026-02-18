@@ -3,6 +3,7 @@ package com.intentbridge.data.repository
 import com.intentbridge.data.local.CardDao
 import com.intentbridge.data.model.Card
 import com.intentbridge.data.model.CardCategory
+import com.intentbridge.service.AudioCacheManager
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -12,7 +13,8 @@ import javax.inject.Singleton
  */
 @Singleton
 class CardRepository @Inject constructor(
-    private val cardDao: CardDao
+    private val cardDao: CardDao,
+    private val audioCacheManager: AudioCacheManager
 ) {
     
     /**
@@ -42,24 +44,62 @@ class CardRepository @Inject constructor(
     suspend fun getCardById(id: Long): Card? = cardDao.getCardById(id)
     
     /**
-     * Insert or update a card
+     * Insert or update a card and generate audio
      */
-    suspend fun saveCard(card: Card): Long = cardDao.insertCard(card)
+    suspend fun saveCard(card: Card): Long {
+        // Generate audio for the card
+        if (card.speechText.isNotBlank()) {
+            val audioPath = audioCacheManager.generateAudioForCard(card)
+            if (audioPath != null) {
+                val cardWithAudio = card.copy(audioPath = audioPath)
+                return cardDao.insertCard(cardWithAudio)
+            }
+        }
+        return cardDao.insertCard(card)
+    }
     
     /**
-     * Update an existing card
+     * Update an existing card and regenerate audio if speech text changed
      */
-    suspend fun updateCard(card: Card) = cardDao.updateCard(card)
+    suspend fun updateCard(card: Card) {
+        // Get existing card to check if speech text changed
+        val existingCard = cardDao.getCardById(card.id)
+        
+        if (existingCard != null && existingCard.speechText != card.speechText) {
+            // Speech text changed - delete old audio and generate new
+            audioCacheManager.deleteAudio(existingCard)
+            
+            if (card.speechText.isNotBlank()) {
+                val audioPath = audioCacheManager.generateAudioForCard(card)
+                if (audioPath != null) {
+                    cardDao.updateCard(card.copy(audioPath = audioPath))
+                    return
+                }
+            }
+        }
+        
+        cardDao.updateCard(card)
+    }
     
     /**
      * Delete a card
      */
-    suspend fun deleteCard(card: Card) = cardDao.deleteCard(card)
+    suspend fun deleteCard(card: Card) {
+        // Delete cached audio
+        audioCacheManager.deleteAudio(card)
+        cardDao.deleteCard(card)
+    }
     
     /**
      * Delete a card by ID
      */
-    suspend fun deleteCardById(id: Long) = cardDao.deleteCardById(id)
+    suspend fun deleteCardById(id: Long) {
+        val card = cardDao.getCardById(id)
+        if (card != null) {
+            audioCacheManager.deleteAudio(card)
+        }
+        cardDao.deleteCardById(id)
+    }
     
     /**
      * Record a card click for AI prediction

@@ -17,7 +17,7 @@ import kotlinx.coroutines.launch
  */
 @Database(
     entities = [Card::class],
-    version = 2,
+    version = 3,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -37,6 +37,7 @@ abstract class AppDatabase : RoomDatabase() {
                     "intentbridge_database"
                 )
                     .addCallback(DatabaseCallback())
+                    .fallbackToDestructiveMigration()
                     .build()
                 INSTANCE = instance
                 instance
