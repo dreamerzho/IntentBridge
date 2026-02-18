@@ -87,24 +87,26 @@ fun MainScreen(
                             modifier = Modifier.padding(end = 4.dp)
                         )
                     }
-                    // Settings button - navigate to config screen (full config)
-                    IconButton(onClick = onNavigateToConfig) {
-                        Icon(
-                            imageVector = Icons.Default.Settings,
-                            contentDescription = "卡片配置",
-                            tint = Color.White
-                        )
-                    }
-                    // Edit button for current page - edit current level cards
-                    IconButton(onClick = { 
-                        // If in level 2 (detail view), pass parent card id
-                        onNavigateToEditPage(state.selectedVerbCard != null, state.selectedVerbCard?.id)
-                    }) {
-                        Icon(
-                            imageVector = Icons.Filled.Edit,
-                            contentDescription = "编辑当前页面",
-                            tint = Color.White
-                        )
+                    // Settings button - navigate to config screen (full config) - only in parent mode
+                    if (state.isParentMode) {
+                        IconButton(onClick = onNavigateToConfig) {
+                            Icon(
+                                imageVector = Icons.Default.Settings,
+                                contentDescription = "卡片配置",
+                                tint = Color.White
+                            )
+                        }
+                        // Edit button for current page - edit current level cards - only in parent mode
+                        IconButton(onClick = { 
+                            // If in level 2 (detail view), pass parent card id
+                            onNavigateToEditPage(state.selectedVerbCard != null, state.selectedVerbCard?.id)
+                        }) {
+                            Icon(
+                                imageVector = Icons.Filled.Edit,
+                                contentDescription = "编辑当前页面",
+                                tint = Color.White
+                            )
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(

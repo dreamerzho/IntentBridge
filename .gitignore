@@ -84,4 +84,7 @@ clone_voice.py
 get_token.py
 list_voices.py
 upload_*
+output.mp3
 
+# Backend (optional server)
+backend/
